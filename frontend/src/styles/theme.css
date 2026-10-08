@@ -1,0 +1,670 @@
+/* =========================================================
+   RESUMEIQ DESIGN SYSTEM
+   Shared by Login + Dashboard
+   Target: Deep navy + cyan + blue + purple neon
+   Themes: Light + Color
+   ========================================================= */
+
+
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
+:root {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+
+  min-width: 320px;
+
+  background: #041126;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+
+  min-width: 320px;
+  min-height: 100vh;
+
+  background: #041126;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   COLOR THEME
+   ========================================================= */
+
+.app-theme {
+  --bg-primary: #041126;
+  --bg-secondary: #071831;
+  --bg-deep: #020b1b;
+
+  --surface: rgba(8, 27, 58, 0.9);
+  --surface-soft: rgba(12, 34, 69, 0.92);
+  --surface-strong: #091b38;
+
+  --text-primary: #f7f9ff;
+  --text-secondary: #a4b6d8;
+  --text-muted: #7890b7;
+
+  --border: rgba(67, 141, 243, 0.46);
+  --border-strong: rgba(51, 161, 255, 0.74);
+
+  --cyan: #1ee7eb;
+  --cyan-soft: #32d6ff;
+
+  --blue: #28baff;
+  --blue-strong: #316eff;
+
+  --purple: #9a4cff;
+  --purple-soft: #b56cff;
+
+  --green: #24e3a7;
+  --red: #ff607d;
+  --gold: #ffd174;
+
+  --green-bg: rgba(36, 227, 167, 0.12);
+  --red-bg: rgba(255, 96, 125, 0.12);
+
+  --panel-gradient:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0.01)
+    );
+
+  --main-gradient:
+    linear-gradient(
+      100deg,
+      var(--cyan),
+      var(--blue-strong),
+      var(--purple)
+    );
+
+  --text-gradient:
+    linear-gradient(
+      90deg,
+      var(--cyan),
+      var(--blue),
+      var(--purple)
+    );
+
+  --soft-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.22);
+
+  --neon-blue-shadow:
+    0 0 24px rgba(36, 153, 255, 0.22);
+
+  --neon-purple-shadow:
+    0 0 24px rgba(147, 69, 255, 0.18);
+
+  --neon-mixed-shadow:
+    0 0 22px rgba(46, 150, 255, 0.16),
+    0 0 42px rgba(148, 66, 255, 0.12);
+
+  position: relative;
+
+  min-height: 100vh;
+
+  overflow-x: hidden;
+
+  color: var(--text-primary);
+
+  background:
+    radial-gradient(
+      circle at 83% 8%,
+      rgba(53, 79, 255, 0.26),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 3% 78%,
+      rgba(0, 105, 255, 0.2),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 100% 75%,
+      rgba(143, 47, 255, 0.14),
+      transparent 26%
+    ),
+    var(--bg-primary);
+}
+
+
+/* =========================================================
+   LIGHT THEME
+   ========================================================= */
+
+.app-theme[data-theme="light"] {
+  --bg-primary: #f5f8ff;
+  --bg-secondary: #edf3ff;
+  --bg-deep: #eaf1ff;
+
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-soft: #f7f9ff;
+  --surface-strong: #ffffff;
+
+  --text-primary: #15213c;
+  --text-secondary: #687896;
+  --text-muted: #8a98b5;
+
+  --border: rgba(75, 105, 172, 0.2);
+  --border-strong: rgba(51, 126, 255, 0.38);
+
+  --cyan: #17b9c8;
+  --cyan-soft: #25b8e7;
+
+  --blue: #287fff;
+  --blue-strong: #5064ef;
+
+  --purple: #8150e6;
+  --purple-soft: #9967eb;
+
+  --green: #17a87c;
+  --red: #d84d69;
+  --gold: #c9922a;
+
+  --green-bg: rgba(23, 168, 124, 0.1);
+  --red-bg: rgba(216, 77, 105, 0.1);
+
+  --panel-gradient:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(247, 250, 255, 0.94)
+    );
+
+  --soft-shadow:
+    0 18px 45px rgba(65, 83, 140, 0.1);
+
+  --neon-blue-shadow:
+    0 8px 25px rgba(48, 104, 210, 0.1);
+
+  --neon-purple-shadow:
+    0 8px 25px rgba(120, 79, 206, 0.08);
+
+  --neon-mixed-shadow:
+    0 10px 30px rgba(62, 96, 170, 0.1);
+
+  background:
+    radial-gradient(
+      circle at 83% 8%,
+      rgba(92, 126, 255, 0.15),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 3% 78%,
+      rgba(68, 194, 255, 0.11),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 100% 75%,
+      rgba(138, 83, 238, 0.08),
+      transparent 28%
+    ),
+    var(--bg-primary);
+}
+
+
+/* =========================================================
+   SHARED PAGE BACKGROUND
+   ========================================================= */
+
+.app-background {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 0;
+
+  overflow: hidden;
+
+  pointer-events: none;
+}
+
+.background-grid {
+  position: absolute;
+
+  inset: 0;
+
+  opacity: 0.055;
+
+  background-image:
+    linear-gradient(
+      rgba(43, 123, 255, 0.18) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(43, 123, 255, 0.18) 1px,
+      transparent 1px
+    );
+
+  background-size: 56px 56px;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 26%,
+      black 70%,
+      transparent 100%
+    );
+}
+
+.background-glow {
+  position: absolute;
+
+  border-radius: 50%;
+
+  filter: blur(110px);
+}
+
+.glow-blue {
+  width: 540px;
+  height: 540px;
+
+  left: -210px;
+  bottom: -180px;
+
+  background:
+    rgba(0, 110, 255, 0.23);
+}
+
+.glow-purple {
+  width: 540px;
+  height: 540px;
+
+  right: -180px;
+  top: 20px;
+
+  background:
+    rgba(119, 56, 255, 0.3);
+}
+
+.neon-wave {
+  position: absolute;
+
+  width: 920px;
+  height: 300px;
+
+  border-radius: 50%;
+
+  border-top:
+    2px solid
+    rgba(45, 128, 255, 0.24);
+}
+
+.wave-one {
+  right: -280px;
+  top: 150px;
+
+  transform:
+    rotate(-10deg);
+}
+
+.wave-two {
+  left: -300px;
+  bottom: -130px;
+
+  border-color:
+    rgba(158, 64, 255, 0.22);
+
+  transform:
+    rotate(9deg);
+}
+
+
+/* =========================================================
+   SHARED HEADER
+   ========================================================= */
+
+.main-header {
+  position: relative;
+
+  z-index: 20;
+
+  height: 66px;
+
+  border-bottom:
+    1px solid var(--border);
+
+  background:
+    rgba(3, 16, 38, 0.84);
+
+  backdrop-filter:
+    blur(20px);
+}
+
+.app-theme[data-theme="light"] .main-header {
+  background:
+    rgba(255, 255, 255, 0.87);
+}
+
+.header-container {
+  width:
+    min(1510px, 92%);
+
+  height: 100%;
+
+  margin: 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+
+/* =========================================================
+   BRAND SHARED STYLES
+   ========================================================= */
+
+.brand {
+  display: flex;
+
+  align-items: center;
+
+  gap: 11px;
+
+  min-width: 0;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 12px;
+
+  color: #ffffff;
+
+  font-size: 22px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--cyan),
+      var(--blue-strong),
+      var(--purple)
+    );
+
+  box-shadow:
+    0 0 24px
+    rgba(48, 138, 255, 0.44);
+}
+
+.brand-name {
+  font-size: 23px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.85px;
+
+  white-space: nowrap;
+}
+
+.brand-name span {
+  color: var(--blue);
+}
+
+.brand-divider {
+  width: 1px;
+  height: 24px;
+
+  flex-shrink: 0;
+
+  margin:
+    0 5px;
+
+  background:
+    var(--border);
+}
+
+.brand-tagline {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   SHARED THEME TOGGLE
+   ========================================================= */
+
+.theme-toggle {
+  display: flex;
+
+  align-items: center;
+
+  padding: 3px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 23px;
+
+  background:
+    rgba(8, 29, 64, 0.74);
+}
+
+.app-theme[data-theme="light"] .theme-toggle {
+  background:
+    #f3f6fd;
+}
+
+.theme-toggle button {
+  min-width: 82px;
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  padding:
+    0 12px;
+
+  border: 0;
+
+  border-radius: 18px;
+
+  background:
+    transparent;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.theme-toggle button.active {
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      110deg,
+      var(--blue-strong),
+      var(--purple)
+    );
+
+  box-shadow:
+    0 4px 16px
+    rgba(70, 85, 255, 0.3);
+}
+
+
+/* =========================================================
+   SHARED PANEL
+   ========================================================= */
+
+.glass-panel {
+  border:
+    1px solid var(--border);
+
+  background:
+    var(--panel-gradient),
+    var(--surface);
+
+  box-shadow:
+    var(--soft-shadow);
+
+  backdrop-filter:
+    blur(18px);
+}
+
+
+/* =========================================================
+   SHARED NEON BUTTON
+   ========================================================= */
+
+.primary-neon-button {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  min-height: 48px;
+
+  border: 0;
+
+  border-radius: 11px;
+
+  color: #ffffff;
+
+  background:
+    var(--main-gradient);
+
+  font-weight: 700;
+
+  box-shadow:
+    0 0 24px
+    rgba(66, 92, 255, 0.28);
+
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.primary-neon-button:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+
+  filter:
+    brightness(1.08);
+}
+
+.primary-neon-button:disabled {
+  opacity: 0.62;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   SHARED GRADIENT TEXT
+   ========================================================= */
+
+.gradient-text {
+  background:
+    var(--text-gradient);
+
+  background-clip: text;
+
+  -webkit-background-clip: text;
+
+  color: transparent;
+}
+
+
+/* =========================================================
+   RESPONSIVE SHARED HEADER
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .brand-tagline,
+  .brand-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-header {
+    height: auto;
+
+    min-height: 66px;
+  }
+
+  .header-container {
+    width: 92%;
+
+    flex-wrap: wrap;
+
+    padding:
+      10px 0;
+  }
+
+  .theme-toggle {
+    width: 100%;
+  }
+
+  .theme-toggle button {
+    flex: 1;
+  }
+}
+
+
