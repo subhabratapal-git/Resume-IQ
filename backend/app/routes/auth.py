@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from sqlalchemy.orm import Session
@@ -19,6 +20,11 @@ from app.services.auth_service import (
     decode_access_token,
     hash_password,
     verify_password,
+)
+from app.services.rate_limiter import (
+    login_limiter,
+    register_limiter,
+    password_change_limiter,
 )
 
 
@@ -77,7 +83,17 @@ def get_current_user(
             detail="User account is disabled",
         )
 
+    # Invalidate token if issued before password was changed or token version is outdated
+    expected_version = getattr(user, "token_version", 1) or 1
+    token_version = payload.get("ver", 1)
+    if token_version < expected_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password was changed. Please log in again.",
+        )
+
     return user
+
 
 
 @router.post(
@@ -86,9 +102,11 @@ def get_current_user(
     status_code=status.HTTP_201_CREATED,
 )
 def register_user(
+    request: Request,
     user_data: UserCreate,
     db: Session = Depends(get_db),
 ):
+    register_limiter.check(request)
     email = str(user_data.email).strip().lower()
 
     existing_user = (
@@ -110,6 +128,7 @@ def register_user(
             user_data.password
         ),
         pro_uses_remaining=5,
+        token_version=1,
     )
 
     db.add(new_user)
@@ -117,7 +136,8 @@ def register_user(
     db.refresh(new_user)
 
     token = create_access_token(
-        new_user.id
+        new_user.id,
+        new_user.token_version
     )
 
     return {
@@ -133,9 +153,11 @@ def register_user(
     response_model=AuthResponse,
 )
 def login_user(
+    request: Request,
     login_data: UserLogin,
     db: Session = Depends(get_db),
 ):
+    login_limiter.check(request)
     email = str(login_data.email).strip().lower()
 
     user = (
@@ -166,7 +188,8 @@ def login_user(
         )
 
     token = create_access_token(
-        user.id
+        user.id,
+        getattr(user, "token_version", 1) or 1
     )
 
     return {
@@ -193,10 +216,13 @@ def get_logged_in_user(
     "/change-password",
 )
 def change_password(
+    request: Request,
     data: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    password_change_limiter.check(request)
+
     if data.new_password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -209,7 +235,7 @@ def change_password(
             detail="Current password is incorrect",
         )
 
-    # Minimum 8 characters \u2014 consistent with the registration password policy
+    # Minimum 8 characters â€” consistent with the registration password policy
     if len(data.new_password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -217,6 +243,8 @@ def change_password(
         )
 
     current_user.password_hash = hash_password(data.new_password)
+    current_user.password_changed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
     db.commit()
 
     return {"message": "Password changed successfully"}

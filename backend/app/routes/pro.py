@@ -2,7 +2,7 @@ import re
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, text
@@ -12,6 +12,8 @@ from app.database import get_db
 from app.models.user import User
 from app.models.analysis import ResumeAnalysis
 from app.routes.auth import get_current_user
+from app.routes.resume import read_limited_file
+from app.services.rate_limiter import analyze_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +50,10 @@ class ProExportRequest(BaseModel):
     corrected_resume_text: str = Field(max_length=MAX_EXPORT_TEXT_LENGTH)
     format: str = Field(max_length=10)  # 'pdf' or 'docx'
 
+
 @router.post("/analyze")
 async def pro_analyze_resume(
+    request: Request,
     file: UploadFile = File(...),
     job_description: str = Form(...),
     target_role: str = Form("Software Engineer"),
@@ -61,6 +65,8 @@ async def pro_analyze_resume(
     Comprehensive Pro Mode analysis: Objective ATS Score, Score Breakdown, Section Diagnostics,
     Top Strengths, Resume Gaps, Best Suggestions, Content Rewrites, and Reconstructed CV.
     """
+    analyze_limiter.check(request)
+
     try:
         # ── Guard 1: Free-use quota check ────────────────────────────────────
         if getattr(current_user, "pro_uses_remaining", 0) <= 0:
@@ -81,19 +87,11 @@ async def pro_analyze_resume(
                 detail="Only PDF and DOCX files are allowed",
             )
 
-        file_bytes = await file.read()
-
-        # ── Guard 3: File size limit (5 MB) ───────────────────────────────────
-        # Prevents memory exhaustion / DoS from huge uploads.
-        if len(file_bytes) > MAX_FILE_SIZE_BYTES:
-            raise HTTPException(
-                status_code=413,
-                detail="Resume file is too large. Maximum allowed size is 5 MB."
-            )
+        # Chunked stream reading prevents memory exhaustion from huge uploads
+        file_bytes = await read_limited_file(file, MAX_FILE_SIZE_BYTES)
 
         # ── Guard 3b: Magic bytes verification ────────────────────────────────
         # Content-Type header can be spoofed. Verify actual file signature.
-        # PDF files start with %PDF. DOCX are ZIP archives starting with PK.
         pdf_type = "application/pdf"
         docx_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         is_valid_pdf = file.content_type == pdf_type and file_bytes[:4] == b"%PDF"
@@ -186,7 +184,7 @@ async def pro_analyze_resume(
         # 5. Calculate Score Breakdown
         keyword_pct = keyword_result.get("keyword_match_percentage", 65.0)
         skill_match_pct = match_result.get("skill_match_percentage", 70.0)
-        
+
         # Blend cosine score with keyword match to get realistic, high-confidence ATS score
         ats_score = int(round(0.6 * keyword_pct + 0.4 * max(ml_score, 50.0)))
         ats_score = max(45, min(96, ats_score))
@@ -213,7 +211,7 @@ async def pro_analyze_resume(
 
         matched_list = match_result.get("matched_skills", [])
         missing_list = match_result.get("missing_skills", [])
-        
+
         # 8 & 9. Dynamic Suggestions & Contextual Rewrites
         ai_insights = generate_pro_insights(
             resume_text=cleaned_text,
@@ -230,7 +228,7 @@ async def pro_analyze_resume(
         ai_mode = ai_insights.get("ai_mode", "ResumeIQ Pro Engine (Active)")
         is_gemini = ai_insights.get("is_gemini", False)
 
-        # 10. Education Scoring and 100% bug fix
+        # 10. Education Scoring
         edu_score_pct = int(round((edu_result.get("education_score", 8) / 10.0) * 100))
         edu_issues = edu_result.get("issues", [])
         if edu_score_pct >= 100 or not edu_issues:
@@ -332,9 +330,6 @@ async def pro_analyze_resume(
         now_formatted = datetime.now().strftime("%b %d, %Y at %I:%M %p")
 
         # 15. Record analysis in database
-        # NOTE: The pro_uses_remaining was already decremented and flushed
-        # at the start of the request (Guard 5) to prevent race conditions.
-
         record = ResumeAnalysis(
             user_id=current_user.id,
             filename=file.filename or "Resume",
@@ -379,17 +374,17 @@ async def pro_analyze_resume(
             "raw_resume_text": cleaned_text
         }
     except HTTPException:
+        db.rollback()
         raise
     except Exception:
+        db.rollback()
         logger.exception("[Pro Analyze] Unexpected error during pro analysis")
         raise HTTPException(status_code=500, detail="Pro analysis failed due to an internal error. Please try again.")
+
 
 @router.post("/export")
 def pro_export_resume(
     request: ProExportRequest,
-    # ── Security fix: /export was previously completely unauthenticated.
-    # Any anonymous caller could supply arbitrary text and generate files.
-    # Now requires a valid JWT like all other Pro endpoints.
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -415,9 +410,9 @@ def pro_export_resume(
     return StreamingResponse(
         file_stream,
         media_type=media_type,
-        # Filename is quoted per RFC 6266 to handle spaces and special characters
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
 
 @router.get("/status")
 def get_pro_status(
@@ -425,13 +420,12 @@ def get_pro_status(
     db: Session = Depends(get_db)
 ):
     """
-    Returns current user Pro usage status, AI Mode state, and global analysis count.
+    Returns current user Pro usage status, AI Mode state, and current user's analysis count.
     """
-    total_count = db.query(func.count(ResumeAnalysis.id)).scalar() or 0
+    user_analysis_count = db.query(func.count(ResumeAnalysis.id)).filter(ResumeAnalysis.user_id == current_user.id).scalar() or 0
     return {
         "pro_uses_remaining": getattr(current_user, "pro_uses_remaining", 5),
         "ai_mode": "AI Mode ON" if is_gemini_active() else "AI Mode OFF",
         "is_ai_active": is_gemini_active(),
-        "total_analyses": total_count
+        "total_analyses": user_analysis_count
     }
-

@@ -5,6 +5,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     UploadFile,
 )
 from sqlalchemy import func
@@ -31,6 +32,7 @@ from app.services.structure_scorer import calculate_structure_score
 from app.services.education_scorer import calculate_education_score
 from app.services.project_scorer import calculate_project_score
 from app.services.experience_scorer import calculate_experience_score
+from app.services.rate_limiter import analyze_limiter
 
 
 router = APIRouter()
@@ -41,6 +43,27 @@ MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 # Max input lengths — prevents oversized payload attacks
 MAX_JOB_DESC_LENGTH = 8000
 MAX_TARGET_ROLE_LENGTH = 120
+
+
+async def read_limited_file(file: UploadFile, max_size_bytes: int = MAX_FILE_SIZE_BYTES) -> bytes:
+    """
+    Reads an uploaded file in chunks up to max_size_bytes.
+    Immediately raises 413 if the file exceeds max_size_bytes without reading infinite bytes into RAM.
+    """
+    chunk_size = 64 * 1024  # 64 KB
+    total_bytes = bytearray()
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_bytes.extend(chunk)
+        if len(total_bytes) > max_size_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Resume file is too large. Maximum allowed size is {max_size_bytes // (1024 * 1024)} MB.",
+            )
+    return bytes(total_bytes)
 
 
 def _verify_file_magic_bytes(file_bytes: bytes, content_type: str) -> bool:
@@ -79,14 +102,8 @@ async def upload_resume(
             detail="Only PDF and DOCX files are allowed",
         )
 
-    file_bytes = await file.read()
-
-    # Guard: enforce 5 MB limit to prevent DoS via huge uploads
-    if len(file_bytes) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail="Resume file is too large. Maximum allowed size is 5 MB.",
-        )
+    # Chunked stream reading prevents memory exhaustion from huge uploads
+    file_bytes = await read_limited_file(file, MAX_FILE_SIZE_BYTES)
 
     # Guard: verify magic bytes to prevent content-type spoofing
     if not _verify_file_magic_bytes(file_bytes, file.content_type):
@@ -146,6 +163,7 @@ async def upload_resume(
 
 @router.post("/analyze")
 async def analyze_resume(
+    request: Request,
     file: UploadFile = File(...),
     job_description: str = Form(...),
     target_role: str = Form("", max_length=120),
@@ -154,6 +172,8 @@ async def analyze_resume(
         get_current_user
     ),
 ):
+    analyze_limiter.check(request)
+
     allowed_types = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -174,14 +194,8 @@ async def analyze_resume(
             detail="Job description cannot be empty",
         )
 
-    file_bytes = await file.read()
-
-    # Guard: enforce 5 MB limit to prevent DoS via huge uploads
-    if len(file_bytes) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail="Resume file is too large. Maximum allowed size is 5 MB.",
-        )
+    # Chunked stream reading prevents memory exhaustion from huge uploads
+    file_bytes = await read_limited_file(file, MAX_FILE_SIZE_BYTES)
 
     # Guard: verify magic bytes to prevent content-type spoofing
     if not _verify_file_magic_bytes(file_bytes, file.content_type):

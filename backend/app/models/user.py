@@ -48,6 +48,14 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
         nullable=False
     )
-    
-    
-    
+
+    password_changed_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    token_version = Column(
+        Integer,
+        default=1,
+        nullable=False
+    )
