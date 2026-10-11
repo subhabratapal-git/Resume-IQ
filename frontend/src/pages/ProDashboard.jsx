@@ -351,7 +351,7 @@ function ProDashboard() {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
-        timeout: 90000,
+        timeout: 180000,
       });
 
       clearTimeout(t1);
@@ -384,7 +384,11 @@ function ProDashboard() {
       if (err.response?.status === 403) {
         setShowPaywallModal(true);
       }
-      setError(err.response?.data?.detail || "Analysis failed. Ensure backend server is running.");
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+        setError("AI generation took longer than usual. Please try analyzing again.");
+      } else {
+        setError(err.response?.data?.detail || "Analysis failed. Ensure backend server is running.");
+      }
     } finally {
       setLoading(false);
       setLoadingStep("");
